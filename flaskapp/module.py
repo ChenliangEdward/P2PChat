@@ -23,11 +23,12 @@ class Message:
         # send message to IP
 
 class Client:
-    def __init__(self, ThisIP, ThisAccountNumber, ThisPassword):
-        self.thisIP = ThisIP
+    def __init__(self, ThisAccountNumber, ThisPassword):
+        self.thisIP = socket.gethostbyname(socket.gethostname())
+        self.Listen_Port = 5050
         self.accountNumber = ThisAccountNumber
         self.thisPassword = ThisPassword
-        self.s = socket.socket()
+        self.s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
     def authenticate(self):
         if self.accountNumber == self.thisPassword:
