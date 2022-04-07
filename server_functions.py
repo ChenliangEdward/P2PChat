@@ -14,19 +14,29 @@ server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(ADDR)
 
 
-def handle_client(conn, addr):
-    print(f"[NEW CONNECTION] {addr} connected.")
+# def handle_client(conn, addr):
+#     print(f"[NEW CONNECTION] {addr} connected.")
+#
+#     connected = True
+#     while connected:
+#         msg_length = conn.recv(HEADER).decode(FORMAT)
+#         if msg_length:
+#             msg_length = int(msg_length)
+#             msg = conn.recv(msg_length).decode(FORMAT)
+#             if msg == DISCONNECT_MESSAGE:
+#                 connected = False
+#             else:
+#                 print(f"[{addr}]{msg}")
+#     conn.close()
 
-    connected = True
-    while connected:
-        msg_length = conn.recv(HEADER).decode(FORMAT)
-        if msg_length:
-            msg_length = int(msg_length)
-            msg = conn.recv(msg_length).decode(FORMAT)
-            if msg == DISCONNECT_MESSAGE:
-                connected = False
-            else:
-                print(f"[{addr}]{msg}")
+
+def handle_client(conn, addr):
+    print(f"[NEW CONNECTION] {addr[0]} connected.")
+    msg_length = conn.recv(HEADER).decode(FORMAT)
+    if msg_length:
+        msg_length = int(msg_length)
+        msg = conn.recv(msg_length).decode(FORMAT)
+        print(f"[{addr}]{msg}")
     conn.close()
 
 
@@ -41,7 +51,7 @@ def start_server():
 def background():
     while True:
         print("Running...")
-        time.sleep(1)
+        time.sleep(10)
 
 
 if __name__ == '__main__':
@@ -50,5 +60,5 @@ if __name__ == '__main__':
     server_thread.start()
     while True:
         print("Running...")
-        time.sleep(1)
+        time.sleep(10)
 

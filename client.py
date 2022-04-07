@@ -8,7 +8,10 @@ SERVER = "192.168.56.1"
 ADDR = (SERVER, PORT)
 
 
-def send(msg):
+def send():
+    msg = input(">>> ")
+    client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    client.connect(ADDR)
     message = msg.encode(FORMAT)
     msg_length = len(message)
     send_length = str(msg_length).encode(FORMAT)
@@ -17,9 +20,4 @@ def send(msg):
     client.send(message)
 
 
-client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-client.connect(ADDR)
-
-msg = input(">>>")
-send(msg)
-send(DISCONNECT_MESSAGE)
+send()
