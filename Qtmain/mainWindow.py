@@ -12,6 +12,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import sqlite3
 import time
 import datetime
+from mainFuncs import *
 
 
 class Ui_MainWindow(object):
@@ -105,13 +106,75 @@ class Ui_MainWindow(object):
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
         # I added the following
+        # self.start_server()
         self.updateFriendList()
         self.friendList.itemClicked.connect(self.displayMessage)
+        self.sendMessage.clicked.connect(self.sendMessageTo)
+        self.statusBox.currentIndexChanged.connect(self.offlineOrOnline)
+        self.run()
 
     def __init__(self):
         self.con = sqlite3.connect("main.db")
         self.cur = self.con.cursor()
         self.userIPMapping = {}
+
+        SERVER = socket.gethostbyname(socket.gethostname())
+        PORT = 5050
+        self.HEADER = 64
+        self.ADDR = (SERVER, PORT)
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.bind(self.ADDR)
+        self.debug_mode = True
+
+    def __handle_client(self, conn, addr):
+        if self.debug_mode:
+            print(f"[NEW CONNECTION] {addr[0]} connected.")
+
+        msg_length = conn.recv(self.HEADER).decode("utf-8")
+        if msg_length:
+            msg_length = int(msg_length)
+            msg = conn.recv(msg_length).decode("utf-8")
+            # Get to DB
+            timestamp = str(int(time.time()))
+            self.cur.execute(f"INSERT INTO messages VALUES ({timestamp},{addr[0]},'In',{msg})")
+            # Show the msg
+            self.displayMessage()
+            if self.debug_mode:
+                print(f"[{addr}]{msg}")
+        conn.close()
+
+    def send(self, target_ip, target_port, msg):
+        client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client.connect((target_ip, target_port))
+
+        message = msg.encode("utf-8")
+        msg_length = len(message)
+        send_length = str(msg_length).encode("utf-8")
+        send_length += b' ' * (self.HEADER - len(send_length))
+        client.send(send_length)
+        client.send(message)
+
+    def start_server(self):
+        self.server.listen()
+        if self.debug_mode:
+            print("Server is listening in start_server()")
+        while True:
+            conn, addr = self.server.accept()  # start a socket object when a new connection starts
+            self.__handle_client(conn, addr)
+
+    def stop_server(self):
+        self.server.close()
+
+    def run(self):
+        print("Start Listening...")
+        server_thread = threading.Thread(target=self.start_server, args=())
+        server_thread.name = "server_thread"
+        server_thread.start()
+
+    def done(self):
+        print("Killing a Thread")
+
+    # below are the interfaces that can be called by the GUI
 
     def displayMessage(self):
         name = self.friendList.currentItem().text()
@@ -139,8 +202,31 @@ class Ui_MainWindow(object):
             self.userIPMapping[row[0]] = row[1]
         # print(self.userIPMapping)
 
-    def sendMessage(self, to_user, content):
-        pass
+    def sendMessageTo(self):
+        msg = self.messageInputBox.toPlainText()
+        target_name = self.friendList.currentItem().text()
+        target_ip = self.userIPMapping[target_name]
+        target_port = 5050  # the target port is due to change
+        try:
+            self.send(target_ip, target_port, msg)
+        except:
+            print("The friend is offline!")
+            return
+        # Get to Database
+        timestamp = str(int(time.time()))
+        self.cur.execute(f"INSERT INTO messages VALUES ({timestamp},{target_name},'Out',{msg})")
+        self.con.commit()
+        self.displayMessage()
+
+    def offlineOrOnline(self):
+        if self.statusBox.currentText() == "Online":
+            self.start_server()
+            if self.debug_mode:
+                print("Server Started")
+        else:
+            self.stop_server()
+            if self.debug_mode:
+                print("Server Stopped")
 
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate

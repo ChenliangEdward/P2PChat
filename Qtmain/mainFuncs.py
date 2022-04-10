@@ -12,7 +12,6 @@ class MainApp:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(self.ADDR)
         self.debug_mode = Debug_mode
-        self.server_thread = threading.Thread(target=self.start_server, args=())
 
     def __handle_client(self, conn, addr):
         if self.debug_mode:
@@ -26,7 +25,7 @@ class MainApp:
                 print(f"[{addr}]{msg}")
         conn.close()
 
-    def start_server(self, switch):
+    def start_server(self):
         self.server.listen()
         while True:
             conn, addr = self.server.accept()  # start a socket object when a new connection starts
@@ -43,8 +42,7 @@ class MainApp:
         client.send(send_length)
         client.send(message)
 
-
-if __name__ == '__main__':
-    main = MainApp(Debug_mode=True)
-
-    main.start_server()
+    def run(self):
+        print("Start Listening...")
+        server_thread = threading.Thread(target=self.start_server, args=())
+        server_thread.start()
