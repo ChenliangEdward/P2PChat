@@ -1,4 +1,4 @@
-from mainFunc import MainApp
+from flaskapp.mainFunc import MainApp
 
 if __name__ == '__main__':
     mainApp = MainApp(Debug_mode=True)
