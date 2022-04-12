@@ -14,8 +14,10 @@ def user_add(username: str, ip_address: str):
     return "Successfully add new user"
 
 
-def user_get(username:str):
+def user_get(username: str):
     user = User.query.filter_by(user_name=username).first()
+    if user is None:
+        return "No such user found! "
     body = {'id': user.id,
             'username': user.user_name,
             'ip': user.ip
@@ -23,7 +25,7 @@ def user_get(username:str):
     return body
 
 
-def user_update(username:str, ip: str):
+def user_update(username: str, ip: str):
     user = User.query.filter_by(user_name=username).first()
     user.ip = ip
     db.session.commit()

@@ -9,13 +9,12 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
-import sqlite3
 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 600)
+        MainWindow.resize(800, 624)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.sendMessage = QtWidgets.QPushButton(self.centralwidget)
@@ -46,14 +45,11 @@ class Ui_MainWindow(object):
         self.friendList = QtWidgets.QListWidget(self.centralwidget)
         self.friendList.setGeometry(QtCore.QRect(20, 70, 171, 311))
         self.friendList.setObjectName("friendList")
-        self.searchButton = QtWidgets.QPushButton(self.centralwidget)
-        self.searchButton.setGeometry(QtCore.QRect(20, 450, 171, 23))
-        self.searchButton.setObjectName("searchButton")
         self.userSearchBox = QtWidgets.QTextEdit(self.centralwidget)
-        self.userSearchBox.setGeometry(QtCore.QRect(20, 411, 171, 31))
+        self.userSearchBox.setGeometry(QtCore.QRect(20, 431, 171, 31))
         self.userSearchBox.setObjectName("userSearchBox")
         self.label = QtWidgets.QLabel(self.centralwidget)
-        self.label.setGeometry(QtCore.QRect(20, 390, 71, 20))
+        self.label.setGeometry(QtCore.QRect(20, 410, 71, 20))
         font = QtGui.QFont()
         font.setPointSize(11)
         self.label.setFont(font)
@@ -82,6 +78,27 @@ class Ui_MainWindow(object):
         font.setPointSize(11)
         self.label_2.setFont(font)
         self.label_2.setObjectName("label_2")
+        self.RefreshMessage = QtWidgets.QPushButton(self.centralwidget)
+        self.RefreshMessage.setGeometry(QtCore.QRect(550, 510, 101, 31))
+        font = QtGui.QFont()
+        font.setFamily("Century Gothic")
+        font.setPointSize(11)
+        self.RefreshMessage.setFont(font)
+        self.RefreshMessage.setObjectName("RefreshMessage")
+        self.signInInput = QtWidgets.QTextEdit(self.centralwidget)
+        self.signInInput.setGeometry(QtCore.QRect(20, 500, 171, 31))
+        self.signInInput.setObjectName("signInInput")
+        self.line_2 = QtWidgets.QFrame(self.centralwidget)
+        self.line_2.setGeometry(QtCore.QRect(260, 400, 511, 16))
+        self.line_2.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_2.setObjectName("line_2")
+        self.searchandadd = QtWidgets.QPushButton(self.centralwidget)
+        self.searchandadd.setGeometry(QtCore.QRect(20, 470, 171, 23))
+        self.searchandadd.setObjectName("searchandadd")
+        self.signIn = QtWidgets.QPushButton(self.centralwidget)
+        self.signIn.setGeometry(QtCore.QRect(20, 540, 171, 23))
+        self.signIn.setObjectName("signIn")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 23))
@@ -102,35 +119,20 @@ class Ui_MainWindow(object):
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-        # I added the following
-        self.addFriendsFromDB()
-        self.listWidget.itemClicked.connect(self.addSomeShit)
-        self.listWidget.update()
-        self.sendMessage.clicked.connect(self.addSomeShit)
-
-    def __init__(self):
-        self.con = sqlite3.connect("main.db")
-        self.cur = self.con.cursor()
-
-    def displayMessage(self):
-        # display the message with
-        pass
-
-    def addFriendsFromDB(self):
-        pass
-
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.sendMessage.setText(_translate("MainWindow", "Send"))
         self.messageLabel.setText(_translate("MainWindow", "Messages"))
         self.friendLabel.setText(_translate("MainWindow", "Friends"))
-        self.searchButton.setText(_translate("MainWindow", "Search and Add"))
         self.label.setText(_translate("MainWindow", "Username:"))
         self.statusBox.setCurrentText(_translate("MainWindow", "Online"))
         self.statusBox.setItemText(0, _translate("MainWindow", "Online"))
         self.statusBox.setItemText(1, _translate("MainWindow", "Offline"))
         self.label_2.setText(_translate("MainWindow", "My Status:"))
+        self.RefreshMessage.setText(_translate("MainWindow", "Refresh"))
+        self.searchandadd.setText(_translate("MainWindow", "Search and Add"))
+        self.signIn.setText(_translate("MainWindow", "Sign In"))
         self.actionNew.setText(_translate("MainWindow", "New"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
         self.actionCopy.setText(_translate("MainWindow", "Copy"))
@@ -139,7 +141,6 @@ class Ui_MainWindow(object):
 
 if __name__ == "__main__":
     import sys
-
     app = QtWidgets.QApplication(sys.argv)
     MainWindow = QtWidgets.QMainWindow()
     ui = Ui_MainWindow()

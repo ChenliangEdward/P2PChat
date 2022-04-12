@@ -9,16 +9,19 @@
 
 
 from PyQt5 import QtCore, QtGui, QtWidgets
+from PyQt5.QtWidgets import QMessageBox
 import sqlite3
 import time
 import datetime
 from mainFuncs import *
+from query_server import *
+import json
 
 
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow):
         MainWindow.setObjectName("MainWindow")
-        MainWindow.resize(800, 600)
+        MainWindow.resize(800, 624)
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.sendMessage = QtWidgets.QPushButton(self.centralwidget)
@@ -49,14 +52,11 @@ class Ui_MainWindow(object):
         self.friendList = QtWidgets.QListWidget(self.centralwidget)
         self.friendList.setGeometry(QtCore.QRect(20, 70, 171, 311))
         self.friendList.setObjectName("friendList")
-        self.searchButton = QtWidgets.QPushButton(self.centralwidget)
-        self.searchButton.setGeometry(QtCore.QRect(20, 450, 171, 23))
-        self.searchButton.setObjectName("searchButton")
         self.userSearchBox = QtWidgets.QTextEdit(self.centralwidget)
-        self.userSearchBox.setGeometry(QtCore.QRect(20, 411, 171, 31))
+        self.userSearchBox.setGeometry(QtCore.QRect(20, 431, 171, 31))
         self.userSearchBox.setObjectName("userSearchBox")
         self.label = QtWidgets.QLabel(self.centralwidget)
-        self.label.setGeometry(QtCore.QRect(20, 390, 71, 20))
+        self.label.setGeometry(QtCore.QRect(20, 410, 71, 20))
         font = QtGui.QFont()
         font.setPointSize(11)
         self.label.setFont(font)
@@ -85,6 +85,27 @@ class Ui_MainWindow(object):
         font.setPointSize(11)
         self.label_2.setFont(font)
         self.label_2.setObjectName("label_2")
+        self.RefreshMessage = QtWidgets.QPushButton(self.centralwidget)
+        self.RefreshMessage.setGeometry(QtCore.QRect(550, 510, 101, 31))
+        font = QtGui.QFont()
+        font.setFamily("Century Gothic")
+        font.setPointSize(11)
+        self.RefreshMessage.setFont(font)
+        self.RefreshMessage.setObjectName("RefreshMessage")
+        self.signInInput = QtWidgets.QTextEdit(self.centralwidget)
+        self.signInInput.setGeometry(QtCore.QRect(20, 500, 171, 31))
+        self.signInInput.setObjectName("signInInput")
+        self.line_2 = QtWidgets.QFrame(self.centralwidget)
+        self.line_2.setGeometry(QtCore.QRect(260, 400, 511, 16))
+        self.line_2.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line_2.setObjectName("line_2")
+        self.searchandadd = QtWidgets.QPushButton(self.centralwidget)
+        self.searchandadd.setGeometry(QtCore.QRect(20, 470, 171, 23))
+        self.searchandadd.setObjectName("searchandadd")
+        self.signIn = QtWidgets.QPushButton(self.centralwidget)
+        self.signIn.setGeometry(QtCore.QRect(20, 540, 171, 23))
+        self.signIn.setObjectName("signIn")
         MainWindow.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(MainWindow)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 800, 23))
@@ -104,19 +125,24 @@ class Ui_MainWindow(object):
 
         self.retranslateUi(MainWindow)
         QtCore.QMetaObject.connectSlotsByName(MainWindow)
-
         # I added the following
         # self.start_server()
         self.updateFriendList()
         self.friendList.itemClicked.connect(self.displayMessage)
         self.sendMessage.clicked.connect(self.sendMessageTo)
         self.statusBox.currentIndexChanged.connect(self.offlineOrOnline)
+        self.RefreshMessage.clicked.connect(self.displayMessage)
+        self.signIn.clicked.connect(self.signInFunc)
+        self.searchandadd.clicked.connect(self.searchAndAddFunc)
         self.run()
 
+    # def closeEvent(self):
+
     def __init__(self):
-        self.con = sqlite3.connect("main.db")
+        self.con = sqlite3.connect("main.db", check_same_thread=False)
         self.cur = self.con.cursor()
         self.userIPMapping = {}
+        self.IPUserMapping = {}
 
         SERVER = socket.gethostbyname(socket.gethostname())
         PORT = 5050
@@ -125,6 +151,38 @@ class Ui_MainWindow(object):
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(self.ADDR)
         self.debug_mode = True
+        self.msgBuff = ""
+
+        self.centralServerIP = ""
+
+    def searchAndAddFunc(self):
+        if self.userSearchBox.toPlainText() == "":
+            return
+        username = self.userSearchBox.toPlainText()
+        # Query the central server
+        friend_ip = user_Get(username)
+        print(username)
+
+        if friend_ip == "No such user found!":
+            print("No such User found!")
+            return
+        else:
+            # add username ip mapping to DB
+            ip = json.loads(friend_ip)["ip"]
+            self.cur.execute(f"INSERT INTO friends VALUES ('{username}','{ip}')")
+            self.con.commit()
+            print("Get to DB successfully")
+        self.updateFriendList()
+
+    def signInFunc(self):
+        if self.signInInput.toPlainText() == "":
+            return
+        ip = self.ADDR[0]
+        username = self.signInInput.toPlainText()
+        if user_Get(username) != ip:
+            user_Patch(username, ip)
+        else:
+            user_Post(username, ip)
 
     def __handle_client(self, conn, addr):
         if self.debug_mode:
@@ -136,9 +194,16 @@ class Ui_MainWindow(object):
             msg = conn.recv(msg_length).decode("utf-8")
             # Get to DB
             timestamp = str(int(time.time()))
-            self.cur.execute(f"INSERT INTO messages VALUES ({timestamp},{addr[0]},'In',{msg})")
+            username = self.IPUserMapping[str(addr[0])]
+            _con = sqlite3.connect("main.db")
+            _cur = _con.cursor()
+            _cur.execute(f"INSERT INTO messages VALUES ('{timestamp}','{username}','In','{str(msg)}')")
+            _con.commit()
+            _con.close()
+            print("message recorded")
+
             # Show the msg
-            self.displayMessage()
+            # self.displayMessage()
             if self.debug_mode:
                 print(f"[{addr}]{msg}")
         conn.close()
@@ -177,9 +242,14 @@ class Ui_MainWindow(object):
     # below are the interfaces that can be called by the GUI
 
     def displayMessage(self):
-        name = self.friendList.currentItem().text()
+        try:
+            name = self.friendList.currentItem().text()
+        except:
+            return
+        print(name)
         allMsg = ""
-
+        if name == "":
+            return
         # get all msg related to the selected person
         for row in self.cur.execute(f'''SELECT * FROM messages WHERE user='{name}' ORDER BY timestamp '''):
             sender = "Me" if row[2] == "Out" else row[1]
@@ -190,7 +260,6 @@ class Ui_MainWindow(object):
         # display the message within the message box:
         self.messageDetail.clear()
         self.messageDetail.append(allMsg)
-        pass
 
     def updateFriendList(self):
         # update the Friendlist from Database, clear the list first and re-add them.
@@ -200,13 +269,14 @@ class Ui_MainWindow(object):
             print(row)
             self.friendList.addItem(row[0])
             self.userIPMapping[row[0]] = row[1]
+            self.IPUserMapping[row[1]] = row[0]
         # print(self.userIPMapping)
 
     def sendMessageTo(self):
         msg = self.messageInputBox.toPlainText()
         target_name = self.friendList.currentItem().text()
         target_ip = self.userIPMapping[target_name]
-        target_port = 5050  # the target port is due to change
+        target_port = 5051  # the target port is due to change
         try:
             self.send(target_ip, target_port, msg)
         except:
@@ -214,7 +284,7 @@ class Ui_MainWindow(object):
             return
         # Get to Database
         timestamp = str(int(time.time()))
-        self.cur.execute(f"INSERT INTO messages VALUES ({timestamp},{target_name},'Out',{msg})")
+        self.cur.execute(f"INSERT INTO messages VALUES ('{timestamp}','{target_name}','Out','{msg}')")
         self.con.commit()
         self.displayMessage()
 
@@ -228,18 +298,28 @@ class Ui_MainWindow(object):
             if self.debug_mode:
                 print("Server Stopped")
 
+    def show_popup(self):
+        msg = QMessageBox()
+        msg.setWindowTitle("Sign Up")
+        msg.setIcon(QMessageBox.Question)
+        msg.setText("You have not signed up!")
+
+        _ = msg.exec_()
+
     def retranslateUi(self, MainWindow):
         _translate = QtCore.QCoreApplication.translate
         MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow"))
         self.sendMessage.setText(_translate("MainWindow", "Send"))
         self.messageLabel.setText(_translate("MainWindow", "Messages"))
         self.friendLabel.setText(_translate("MainWindow", "Friends"))
-        self.searchButton.setText(_translate("MainWindow", "Search and Add"))
         self.label.setText(_translate("MainWindow", "Username:"))
         self.statusBox.setCurrentText(_translate("MainWindow", "Online"))
         self.statusBox.setItemText(0, _translate("MainWindow", "Online"))
         self.statusBox.setItemText(1, _translate("MainWindow", "Offline"))
         self.label_2.setText(_translate("MainWindow", "My Status:"))
+        self.RefreshMessage.setText(_translate("MainWindow", "Refresh"))
+        self.searchandadd.setText(_translate("MainWindow", "Search and Add"))
+        self.signIn.setText(_translate("MainWindow", "Sign In"))
         self.actionNew.setText(_translate("MainWindow", "New"))
         self.actionSave.setText(_translate("MainWindow", "Save"))
         self.actionCopy.setText(_translate("MainWindow", "Copy"))
